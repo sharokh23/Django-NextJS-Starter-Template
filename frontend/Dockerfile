@@ -6,7 +6,7 @@
 # Production pattern follows the official example:
 # https://github.com/vercel/next.js/tree/canary/examples/with-docker
 
-FROM node:22-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 
 WORKDIR /app
 
@@ -46,7 +46,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # --- Production runtime (minimal, non-root) ---
-FROM node:22-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 
 WORKDIR /app
 
