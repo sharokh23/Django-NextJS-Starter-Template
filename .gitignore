@@ -37,6 +37,8 @@ venv.bak/
 .DS_Store
 *.pem
 
+.claude/settings.local.json
+
 # vercel
 .vercel
 
