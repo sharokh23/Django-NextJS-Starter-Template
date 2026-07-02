@@ -1,4 +1,16 @@
 {
+  // Default: Prettier for everything it supports (TS/JS/JSON/CSS/MD).
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Python files: Ruff instead (Prettier doesn't handle Python).
+  // Language-scoped settings override the global default above.
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  }
 }

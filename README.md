@@ -155,7 +155,7 @@ Read in [backend/core/settings.py](backend/core/settings.py). All are optional u
 | **`DJANGO_SECRET_KEY`** | Cryptographic signing | Insecure fallback used when `DJANGO_DEBUG=1` | **Required** — settings raise `ImproperlyConfigured` without it |
 | **`DJANGO_DEBUG`** | `1`/`true`/`yes` enables debug; **defaults off** (fail closed) | `1` in dev Compose and local dev | `0` (or unset) |
 | **`DJANGO_ALLOWED_HOSTS`** | Comma-separated `Host` values | Includes `backend` for Docker networking | Include `backend` + real domains if you expose Django |
-| **`DATABASE_URL`** | Database connection string ([dj-database-url](https://pypi.org/project/dj-database-url/)); falls back to SQLite when unset | `postgres://app:app@db:5432/app` (set by Compose) | RDS endpoint, or Compose-constructed from `POSTGRES_PASSWORD` |
+| **`DATABASE_URL`** | Postgres connection string (parsed in `settings.py`; percent-encode special chars in credentials); falls back to SQLite when unset | `postgres://app:app@db:5432/app` (set by Compose) | RDS endpoint, or Compose-constructed from `POSTGRES_PASSWORD` |
 | **`DJANGO_CSRF_TRUSTED_ORIGINS`** | Comma-separated browser origins trusted for CSRF-protected requests (admin login, session auth) through a proxy | `http://localhost:3000,http://127.0.0.1:3000` | `https://your-domain.example` |
 | **`DJANGO_HTTPS`** | Set to `1` behind a TLS-terminating proxy (ALB, nginx): trusts `X-Forwarded-Proto`, enables secure cookies + HSTS + HTTPS redirect (`/health` exempt) | Unset | `1` in real deployments |
 | **`DJANGO_ENVIRONMENT`** | Set to **`production`** to disable `/docs`, `/redoc`, and `/openapi.json` | `development` or unset | **`production`** in prod Compose |
@@ -211,7 +211,7 @@ python manage.py createsuperuser
 python manage.py runserver 127.0.0.1:8000
 ```
 
-**Database:** [dj-database-url](https://pypi.org/project/dj-database-url/) reads **`DATABASE_URL`** — both Compose stacks run **PostgreSQL 17** (`db` service, `postgres_data` volume) and point Django at it. When `DATABASE_URL` is unset (e.g. the no-Docker quickstart), Django falls back to **SQLite** (`db.sqlite3` next to `manage.py`, gitignored). On AWS, set `DATABASE_URL` to your RDS endpoint.
+**Database:** a small parser in [backend/core/settings.py](backend/core/settings.py) reads **`DATABASE_URL`** (no extra dependency; unit-tested in [backend/core/tests.py](backend/core/tests.py) — note that special characters in credentials must be percent-encoded). Both Compose stacks run **PostgreSQL 17** (`db` service, `postgres_data` volume) and point Django at it. When `DATABASE_URL` is unset (e.g. the no-Docker quickstart), Django falls back to **SQLite** (`db.sqlite3` next to `manage.py`, gitignored). On AWS, set `DATABASE_URL` to your RDS endpoint.
 
 **Static files:** [WhiteNoise](https://whitenoise.readthedocs.io/) serves hashed, compressed static files (admin CSS/JS) from Gunicorn — `collectstatic` runs during the prod image build, and `STATIC_URL` lives under `/svc/api/static/` so path-based routing sends those requests to Django.
 

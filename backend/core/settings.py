@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlsplit
 
-import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -124,12 +124,45 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Compose points it at the postgres service; on AWS use the RDS endpoint.
 # Falls back to SQLite so the no-Docker quickstart works with zero setup.
 
+
+def _postgres_from_url(url: str) -> dict:
+    """Parse a postgres:// URL into a Django DATABASES entry.
+
+    Deliberately Postgres-only (no dj-database-url dependency). Credentials
+    with special characters (@ / # :) must be percent-encoded in the URL —
+    the unquote() calls here decode them. Covered by core/tests.py.
+    """
+    parts = urlsplit(url)
+    if parts.scheme not in ("postgres", "postgresql"):
+        raise ImproperlyConfigured(
+            f"Unsupported DATABASE_URL scheme: {parts.scheme!r} (expected postgres://)"
+        )
+    try:
+        port = parts.port or ""
+    except ValueError as exc:  # e.g. unencoded ':' in a socket-path host
+        raise ImproperlyConfigured(f"Invalid port in DATABASE_URL: {exc}") from exc
+    config = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(parts.path.lstrip("/")),
+        "USER": unquote(parts.username or ""),
+        "PASSWORD": unquote(parts.password or ""),
+        "HOST": unquote(parts.hostname or ""),
+        "PORT": port,
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
+    }
+    if parts.query:  # e.g. ?sslmode=require for RDS
+        config["OPTIONS"] = {k: v[-1] for k, v in parse_qs(parts.query).items()}
+    return config
+
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    "default": _postgres_from_url(os.environ["DATABASE_URL"])
+    if os.environ.get("DATABASE_URL")
+    else {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
 }
 
 
