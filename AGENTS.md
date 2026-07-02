@@ -26,6 +26,12 @@ See [README.md](README.md) for the full architecture.
   bundled Next.js docs in `node_modules/next/dist/docs/` before writing
   Next.js code; this version differs from training data.
 
+## Commits
+
+- Brief and to the point: short imperative subject, body only when needed.
+- Never add "Co-Authored-By" trailers or any AI attribution to commits,
+  PR bodies, or anywhere else.
+
 ## Commands
 
 - Run the stack: `docker compose up --build` (frontend :3000, backend :8000).
