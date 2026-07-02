@@ -61,9 +61,10 @@ jobs:
     name: Production images build
     runs-on: ubuntu-latest
     env:
-      # docker-compose.prod.yml requires DJANGO_SECRET_KEY at interpolation
-      # time (${VAR:?}); the build itself does not bake this value in.
+      # docker-compose.prod.yml requires these at interpolation time
+      # (${VAR:?}); the build itself does not bake the values in.
       DJANGO_SECRET_KEY: ci-only-build-secret
+      POSTGRES_PASSWORD: ci-only-build-password
     steps:
       - uses: actions/checkout@v4
       # Validates both production Dockerfile targets end to end.
