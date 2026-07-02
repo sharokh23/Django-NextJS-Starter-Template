@@ -1,5 +1,5 @@
 # Pin versions for reproducible installs; relax as needed.
 Django==6.0.6
-gunicorn==23.0.0
+gunicorn==26.0.0
 whitenoise==6.12.0
 psycopg[binary]==3.3.4
