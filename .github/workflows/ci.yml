@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend (lint + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      # next build also runs the TypeScript check
+      - run: npm run build
+
+  backend:
+    name: Backend (Django check)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Settings fail closed: DEBUG defaults off and then requires a secret.
+      # This value is CI-only; it satisfies check --deploy key-strength rules.
+      DJANGO_SECRET_KEY: ci-only-4kq8zj2mvx7nwp3rgy6thb9scf5dua1eol0i-not-a-real-secret
+      DJANGO_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: python manage.py check
+      # Fails if model changes are missing their migrations.
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test
+      # Surface deployment-checklist warnings with production-like settings
+      # (fails only on errors; warnings are informational in the log).
+      - run: python manage.py check --deploy
+        env:
+          DJANGO_HTTPS: "1"
+
+  docker:
+    name: Production images build
+    runs-on: ubuntu-latest
+    env:
+      # docker-compose.prod.yml requires DJANGO_SECRET_KEY at interpolation
+      # time (${VAR:?}); the build itself does not bake this value in.
+      DJANGO_SECRET_KEY: ci-only-build-secret
+    steps:
+      - uses: actions/checkout@v4
+      # Validates both production Dockerfile targets end to end.
+      # For AWS ECS: this is where login + push to ECR and a task-definition
+      # update would slot in once deployment is wired up.
+      - run: docker compose -f docker-compose.prod.yml build

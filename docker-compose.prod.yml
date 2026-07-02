@@ -1,0 +1,70 @@
+# Production stack: docker compose -f docker-compose.prod.yml up --build -d
+#
+# - Only the frontend is published (:3000). The backend stays on the internal
+#   Docker network and is reached through the Next.js /svc/api rewrite proxy.
+# - Terminate TLS with a reverse proxy (nginx, Traefik, Caddy) in front of the
+#   frontend; do not expose the Node server directly to the internet.
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      # Required — compose fails fast if unset (put it in a repo-root .env).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env or the environment}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DJANGO_DEBUG: "0"
+      DATABASE_URL: postgres://app:${POSTGRES_PASSWORD:-}@db:5432/app
+      DJANGO_ALLOWED_HOSTS: "backend,localhost,127.0.0.1"
+      # Browser origins trusted for CSRF-protected requests (admin login).
+      # Override with your real https:// domain when deploying behind TLS.
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      DJANGO_ENVIRONMENT: "production"
+      # Set to 1 when a TLS-terminating proxy (ALB, nginx) fronts the stack:
+      # enables secure cookies, HSTS, and X-Forwarded-Proto trust.
+      DJANGO_HTTPS: ${DJANGO_HTTPS:-0}
+      # Required — compose fails fast if unset (put it in a repo-root .env).
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY in .env or the environment}
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    environment:
+      # Runtime env read by proxy.ts — the same image works in any environment.
+      # Behind ALB path routing (ECS), leave this unset instead.
+      BACKEND_INTERNAL_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        # Waits for the HEALTHCHECK in backend/Dockerfile (prod target).
+        condition: service_healthy
+
+volumes:
+  postgres_data:
