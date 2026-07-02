@@ -13,7 +13,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -38,7 +38,7 @@ jobs:
       DJANGO_SECRET_KEY: ci-only-4kq8zj2mvx7nwp3rgy6thb9scf5dua1eol0i-not-a-real-secret
       DJANGO_DEBUG: "0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -66,7 +66,7 @@ jobs:
       DJANGO_SECRET_KEY: ci-only-build-secret
       POSTGRES_PASSWORD: ci-only-build-password
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Validates both production Dockerfile targets end to end.
       # For AWS ECS: this is where login + push to ECR and a task-definition
       # update would slot in once deployment is wired up.
