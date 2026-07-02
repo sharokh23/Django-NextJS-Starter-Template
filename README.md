@@ -46,7 +46,7 @@ Day-one checklist when starting a new app from this skeleton:
 
 | Area | Version / tool |
 |------|----------------|
-| **Node.js** | 22 (matches `frontend/Dockerfile` and CI) |
+| **Node.js** | 24 LTS (matches `frontend/Dockerfile` and CI; bundles npm 11) |
 | **Python** | 3.14 (matches `backend/Dockerfile` **3.14-slim** and CI) |
 | **Docker** | Optional but recommended for parity with production |
 
