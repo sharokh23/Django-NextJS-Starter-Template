@@ -40,6 +40,8 @@ services:
       # Override with your real https:// domain when deploying behind TLS.
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       DJANGO_ENVIRONMENT: "production"
+      # Relocate the admin away from /svc/api/admin/ (default) in production.
+      DJANGO_ADMIN_PATH: ${DJANGO_ADMIN_PATH:-admin}
       # Set to 1 when a TLS-terminating proxy (ALB, nginx) fronts the stack:
       # enables secure cookies, HSTS, and X-Forwarded-Proto trust.
       DJANGO_HTTPS: ${DJANGO_HTTPS:-0}

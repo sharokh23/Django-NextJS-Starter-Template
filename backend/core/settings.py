@@ -56,6 +56,10 @@ CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 # Set to ``production`` in prod Compose to hide /docs, /redoc, and /openapi.json.
 DJANGO_ENVIRONMENT = os.environ.get("DJANGO_ENVIRONMENT", "development").strip().lower()
 
+# Admin URL segment under /svc/api/ — relocate it in production (scanners probe
+# the default /admin/ constantly). E.g. DJANGO_ADMIN_PATH=manage-7f3k9
+DJANGO_ADMIN_PATH = os.environ.get("DJANGO_ADMIN_PATH", "admin").strip("/")
+
 # Set DJANGO_HTTPS=1 when serving behind a TLS-terminating proxy (ALB, nginx).
 # Leave off for plain-HTTP setups like the local prod Compose stack.
 if _env_bool("DJANGO_HTTPS"):
