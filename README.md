@@ -5,6 +5,7 @@ A minimal monorepo: **Next.js 16** (App Router) on port **3000** and **Django 6*
 ## Contents
 
 - [What you get](#what-you-get)
+- [Using this template](#using-this-template)
 - [Requirements](#requirements)
 - [Project layout](#project-layout)
 - [Run with Docker (development)](#run-with-docker-development)
@@ -29,12 +30,24 @@ A minimal monorepo: **Next.js 16** (App Router) on port **3000** and **Django 6*
 7. **Tests both sides** — Django `TestCase` suites and Vitest + React Testing Library.
 8. **GitHub Actions** CI: lint (ESLint/Prettier/Ruff), tests, migration check, `check --deploy`, and prod image builds; **Dependabot** keeps npm/pip/actions/docker fresh.
 
+## Using this template
+
+Day-one checklist when starting a new app from this skeleton:
+
+1. **Rename the project** — `name` in [frontend/package.json](frontend/package.json), the `title`/`description` metadata in [frontend/app/layout.tsx](frontend/app/layout.tsx), and the OpenAPI `info` in [backend/api/openapi.py](backend/api/openapi.py). Compose prefixes container names with the repo directory name automatically.
+2. **Generate secrets** — `python -c "import secrets; print(secrets.token_urlsafe(50))"` for `DJANGO_SECRET_KEY`; pick a `POSTGRES_PASSWORD`. Put both in a repo-root `.env` (gitignored) for the prod Compose stack.
+3. **Fresh database** — `docker compose down -v` wipes the template's demo volume; the first `docker compose up` migrates from scratch. Create your superuser: `docker compose exec backend python manage.py createsuperuser`.
+4. **Set your domain** — `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS` with your real origin; `DJANGO_HTTPS=1` behind TLS; consider relocating the admin via `DJANGO_ADMIN_PATH`.
+5. **Update the LICENSE** — year and copyright holder (or replace MIT entirely).
+6. **Grow the user model first** — add fields to `accounts.User` *before* inventing profile tables; that is why it exists.
+7. **Replace the demo API** — the `items` endpoints, [components/api-demo.tsx](frontend/components/api-demo.tsx), and the hand-written [openapi.py](backend/api/openapi.py) schema are placeholders. When the real API grows, switch to a generated schema (DRF + drf-spectacular or django-ninja) rather than maintaining the dict by hand.
+
 ## Requirements
 
 | Area | Version / tool |
 |------|----------------|
 | **Node.js** | 22 (matches `frontend/Dockerfile` and CI) |
-| **Python** | 3.12+ locally; Docker backend images use **3.12-slim** |
+| **Python** | 3.14 (matches `backend/Dockerfile` **3.14-slim** and CI) |
 | **Docker** | Optional but recommended for parity with production |
 
 ## Project layout
@@ -159,6 +172,7 @@ Read in [backend/core/settings.py](backend/core/settings.py). All are optional u
 | **`DJANGO_CSRF_TRUSTED_ORIGINS`** | Comma-separated browser origins trusted for CSRF-protected requests (admin login, session auth) through a proxy | `http://localhost:3000,http://127.0.0.1:3000` | `https://your-domain.example` |
 | **`DJANGO_HTTPS`** | Set to `1` behind a TLS-terminating proxy (ALB, nginx): trusts `X-Forwarded-Proto`, enables secure cookies + HSTS + HTTPS redirect (`/health` exempt) | Unset | `1` in real deployments |
 | **`DJANGO_ENVIRONMENT`** | Set to **`production`** to disable `/docs`, `/redoc`, and `/openapi.json` | `development` or unset | **`production`** in prod Compose |
+| **`DJANGO_ADMIN_PATH`** | Admin URL segment under `/svc/api/` — relocate it in production so scanners probing `/admin/` get 404s (the home-page Admin link assumes the default) | `admin` (default) | e.g. `manage-7f3k9` |
 
 Compose also sets **`PYTHONUNBUFFERED=1`** in containers.
 
@@ -264,7 +278,7 @@ Open [http://localhost:3000](http://localhost:3000):
 [.github/workflows/ci.yml](.github/workflows/ci.yml):
 
 1. **Frontend** — `npm ci`, `npm run lint`, `npm run format:check` (Prettier), `npm test` (Vitest + React Testing Library), `npm run build` (includes TypeScript).
-2. **Backend** — Python **3.12**, `pip install -r requirements-dev.txt`, **Ruff** (`check` + `format --check`), `manage.py check`, `makemigrations --check` (fails on missing migrations), `manage.py test`, plus **`check --deploy`** with production-like env (`DJANGO_HTTPS=1`).
+2. **Backend** — Python **3.14**, `pip install -r requirements-dev.txt`, **Ruff** (`check` + `format --check`), `manage.py check`, `makemigrations --check` (fails on missing migrations), `manage.py test`, plus **`check --deploy`** with production-like env (`DJANGO_HTTPS=1`).
 3. **Docker** — `docker compose -f docker-compose.prod.yml build` (both production images; CI supplies a dummy `DJANGO_SECRET_KEY` to satisfy the required-variable check).
 
 ## Next.js MCP (coding agents)
