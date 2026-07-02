@@ -50,7 +50,24 @@ jobs:
       - run: python manage.py check
       # Fails if model changes are missing their migrations.
       - run: python manage.py makemigrations --check --dry-run
-      - run: python manage.py test
+      # Run tests and publish a job summary (Vitest does this natively;
+      # Django's runner needs the $GITHUB_STEP_SUMMARY markdown by hand).
+      - name: Run Django tests
+        run: |
+          python manage.py test --verbosity 2 2>&1 | tee test-output.log
+          result=${PIPESTATUS[0]}
+          {
+            echo "## Django Test Report"
+            echo ""
+            grep -E "^(Found|Ran) " test-output.log | sed 's/^/- /'
+            if [ "$result" -eq 0 ]; then
+              echo "- Result: ✅ **OK**"
+            else
+              echo "- Result: ❌ **FAILED**"
+              grep -E "^(FAIL|ERROR): " test-output.log | sed 's/^/- /'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"
       # Surface deployment-checklist warnings with production-like settings
       # (fails only on errors; warnings are informational in the log).
       - run: python manage.py check --deploy
